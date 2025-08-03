@@ -20,7 +20,8 @@ type Context struct {
 
 type LicenseCommand struct {
 	List       bool     `name:"list" short:"l" help:"list all available license templates."`
-	Files      []string `arg:"" name:"files" help:"license template names." optional:""`
+	Stdout     bool     `name:"stdout" help:"Print contents to stdout instead of writing to a file path (i.e. output to terminal)"`
+	Names      []string `arg:"" name:"names" help:"license template identifiers/names." optional:""`
 	OutputPath string   `name:"output" short:"o" default:"LICENSE"`
 }
 
@@ -31,13 +32,13 @@ func (l *LicenseCommand) Run(ctx *Context) error {
 		return nil
 	}
 
-	if len(l.Files) == 0 {
+	if len(l.Names) == 0 {
 		return fmt.Errorf("missing arguments")
 	}
 
 	var f *os.File
 	var err error
-	if l.OutputPath != "" {
+	if !l.Stdout {
 		f, err = os.Create(l.OutputPath)
 		if err != nil {
 			return err
@@ -45,30 +46,30 @@ func (l *LicenseCommand) Run(ctx *Context) error {
 	}
 	defer f.Close()
 
-	name := l.Files[0]
-
-	path, err := url.JoinPath("https://raw.githubusercontent.com/spdx/license-list-data/main/text", name+".txt")
-	if err != nil {
-		return err
-	}
-
-	resp, err := http.Get(path)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	if f != nil {
-		if _, err := f.Write(body); err != nil {
+	for _, name := range l.Names {
+		path, err := url.JoinPath("https://raw.githubusercontent.com/spdx/license-list-data/main/text", name+".txt")
+		if err != nil {
 			return err
 		}
-	} else {
-		fmt.Println(string(body))
+
+		resp, err := http.Get(path)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+
+		if !l.Stdout {
+			if _, err := f.Write(body); err != nil {
+				return err
+			}
+		} else {
+			fmt.Println(string(body))
+		}
 	}
 
 	return nil
@@ -76,7 +77,8 @@ func (l *LicenseCommand) Run(ctx *Context) error {
 
 type GitignoreCommand struct {
 	List       bool     `name:"list" short:"l" help:"list all available gitignore templates."`
-	Files      []string `arg:"" name:"files" help:"gitignore template names." optional:""`
+	Stdout     bool     `name:"stdout" help:"Print contents to stdout instead of writing to a file path (i.e. output to terminal)"`
+	Names      []string `arg:"" name:"names" help:"gitignore template identifier/names." optional:""`
 	OutputPath string   `name:"output" short:"o"`
 }
 
