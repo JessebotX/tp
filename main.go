@@ -1,17 +1,20 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/alecthomas/kong"
 )
 
 const (
-	ConfigName = "tp.json"
+	LicenseListURL     = "https://api.github.com/repos/spdx/license-list-data/contents/text"
+	LicenseDownloadURL = "https://raw.githubusercontent.com/spdx/license-list-data/main/text"
 )
 
 type Context struct {
@@ -25,9 +28,32 @@ type LicenseCommand struct {
 	OutputPath string   `name:"output" short:"o" default:"LICENSE"`
 }
 
+type LicenseRepoItem struct {
+	Name string
+}
+
 func (l *LicenseCommand) Run(ctx *Context) error {
 	if l.List {
-		fmt.Println("TODO: list all available licenses.")
+		resp, err := http.Get(LicenseListURL)
+		if err != nil {
+			return err
+		}
+		defer resp.Body.Close()
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+
+		var respItems []LicenseRepoItem
+
+		if err := json.Unmarshal(body, &respItems); err != nil {
+			return err
+		}
+
+		for _, v := range respItems {
+			fmt.Println(strings.TrimSuffix(v.Name, ".txt"))
+		}
 
 		return nil
 	}
@@ -47,7 +73,7 @@ func (l *LicenseCommand) Run(ctx *Context) error {
 	defer f.Close()
 
 	for _, name := range l.Names {
-		path, err := url.JoinPath("https://raw.githubusercontent.com/spdx/license-list-data/main/text", name+".txt")
+		path, err := url.JoinPath(LicenseDownloadURL, name+".txt")
 		if err != nil {
 			return err
 		}
