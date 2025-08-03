@@ -22,9 +22,9 @@ type Context struct {
 }
 
 type LicenseCommand struct {
-	List       bool     `name:"list" short:"l" help:"list all available license templates."`
+	List       bool     `name:"list" short:"l" help:"List all available license templates."`
 	Stdout     bool     `name:"stdout" help:"Print contents to stdout instead of writing to a file path (i.e. output to terminal)"`
-	Names      []string `arg:"" name:"names" help:"license template identifiers/names." optional:""`
+	Names      []string `arg:"" name:"names" help:"License template identifiers/names." optional:""`
 	OutputPath string   `name:"output" short:"o" default:"LICENSE"`
 }
 
@@ -102,9 +102,9 @@ func (l *LicenseCommand) Run(ctx *Context) error {
 }
 
 type GitignoreCommand struct {
-	List       bool     `name:"list" short:"l" help:"list all available gitignore templates."`
+	List       bool     `name:"list" short:"l" help:"List all available gitignore templates."`
 	Stdout     bool     `name:"stdout" help:"Print contents to stdout instead of writing to a file path (i.e. output to terminal)"`
-	Names      []string `arg:"" name:"names" help:"gitignore template identifier/names." optional:""`
+	Names      []string `arg:"" name:"names" help:"Gitignore template identifier/names." optional:""`
 	OutputPath string   `name:"output" short:"o"`
 }
 
@@ -115,7 +115,7 @@ func (g *GitignoreCommand) Run(ctx *Context) error {
 
 type Config struct {
 	License   LicenseCommand   `cmd:"" help:"Fetch software licenses."`
-	Gitignore GitignoreCommand `cmd:"" help:"fetch gitignore templates."`
+	Gitignore GitignoreCommand `cmd:"" help:"Fetch gitignore templates."`
 }
 
 func main() {
