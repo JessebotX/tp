@@ -1,5 +1,5 @@
 # tp
-**🗃️ `tp` is a CLI tool for conveniently generating software license and gitignore templates for your projects ⚒️.** No longer do you have to manually scour the internet to copy-and-paste the correct `LICENSE` and `.gitignore` files, `tp` will automatically go out and fetch your desired `LICENSE` templates from <https://github.com/spdx/license-list-data> and `.gitignore` templates <https://github.com/github/gitignore>.
+**🗃️ `tp` is a CLI tool for conveniently generating software license and gitignore templates for your projects ⚒️.** No longer do you need to manually scour the internet in order to find the correct `LICENSE` and `.gitignore` files, `tp` will automatically go out and fetch your desired `LICENSE` templates from <https://github.com/spdx/license-list-data> and `.gitignore` templates <https://github.com/github/gitignore>.
 
 # Install
 - Dependencies
