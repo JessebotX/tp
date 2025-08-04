@@ -13,12 +13,19 @@ import (
 )
 
 const (
-	LicenseListURL     = "https://api.github.com/repos/spdx/license-list-data/contents/text"
-	LicenseDownloadURL = "https://raw.githubusercontent.com/spdx/license-list-data/main/text"
+	LicenseListURL       = "https://api.github.com/repos/spdx/license-list-data/contents/text"
+	LicenseDownloadURL   = "https://raw.githubusercontent.com/spdx/license-list-data/main/text"
+	GitignoreListURL     = "https://api.github.com/repos/github/gitignore/contents"
+	GitignoreDownloadURL = "https://raw.githubusercontent.com/github/gitignore/main"
 )
 
 type Context struct {
 	Offline bool
+}
+
+type FetchItem struct {
+	Name string
+	Type string
 }
 
 type LicenseCommand struct {
@@ -28,25 +35,14 @@ type LicenseCommand struct {
 	OutputPath string   `name:"output" short:"o" default:"LICENSE"`
 }
 
-type LicenseRepoItem struct {
-	Name string
-}
-
 func (l *LicenseCommand) Run(ctx *Context) error {
 	if l.List {
-		resp, err := http.Get(LicenseListURL)
-		if err != nil {
-			return err
-		}
-		defer resp.Body.Close()
-
-		body, err := io.ReadAll(resp.Body)
+		body, err := fetchBytes(LicenseListURL)
 		if err != nil {
 			return err
 		}
 
-		var respItems []LicenseRepoItem
-
+		var respItems []FetchItem
 		if err := json.Unmarshal(body, &respItems); err != nil {
 			return err
 		}
@@ -77,14 +73,7 @@ func (l *LicenseCommand) Run(ctx *Context) error {
 		if err != nil {
 			return err
 		}
-
-		resp, err := http.Get(path)
-		if err != nil {
-			return err
-		}
-		defer resp.Body.Close()
-
-		body, err := io.ReadAll(resp.Body)
+		body, err := fetchBytes(path)
 		if err != nil {
 			return err
 		}
@@ -105,12 +94,89 @@ type GitignoreCommand struct {
 	List       bool     `name:"list" short:"l" help:"List all available gitignore templates."`
 	Stdout     bool     `name:"stdout" help:"Print contents to stdout instead of writing to a file path (i.e. output to terminal)"`
 	Names      []string `arg:"" name:"names" help:"Gitignore template identifier/names." optional:""`
-	OutputPath string   `name:"output" short:"o"`
+	OutputPath string   `name:"output" short:"o" default:".gitignore"`
 }
 
 func (g *GitignoreCommand) Run(ctx *Context) error {
-	fmt.Println("gitignore")
+	if g.List {
+		body, err := fetchBytes(GitignoreListURL)
+		if err != nil {
+			return err
+		}
+
+		var respItems []FetchItem
+		if err := json.Unmarshal(body, &respItems); err != nil {
+			return err
+		}
+
+		for _, v := range respItems {
+			if v.Type == "dir" && v.Name[0] != '.' {
+				fmt.Println(v.Name + "/")
+				continue
+			}
+
+			if v.Type != "dir" && (!strings.HasSuffix(v.Name, ".gitignore") || v.Name == ".gitignore") {
+				continue
+			}
+
+			if v.Name[0] != '.' {
+				fmt.Println(strings.TrimSuffix(v.Name, ".gitignore"))
+			}
+		}
+
+		return nil
+	}
+
+	if len(g.Names) == 0 {
+		return fmt.Errorf("missing arguments")
+	}
+
+	var f *os.File
+	var err error
+	if !g.Stdout {
+		f, err = os.Create(g.OutputPath)
+		if err != nil {
+			return err
+		}
+	}
+	defer f.Close()
+
+	for _, name := range g.Names {
+		path, err := url.JoinPath(GitignoreDownloadURL, name+".gitignore")
+		if err != nil {
+			return err
+		}
+
+		body, err := fetchBytes(path)
+		if err != nil {
+			return err
+		}
+
+		if !g.Stdout {
+			if _, err := f.Write(body); err != nil {
+				return err
+			}
+		} else {
+			fmt.Println(string(body))
+		}
+	}
+
 	return nil
+}
+
+func fetchBytes(url string) ([]byte, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return body, nil
 }
 
 type Config struct {
