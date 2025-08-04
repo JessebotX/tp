@@ -69,6 +69,8 @@ func (l *LicenseCommand) Run(ctx *Context) error {
 	defer f.Close()
 
 	for _, name := range l.Names {
+		name = strings.TrimSuffix(name, ".txt")
+
 		path, err := url.JoinPath(LicenseDownloadURL, name+".txt")
 		if err != nil {
 			return err
@@ -142,6 +144,8 @@ func (g *GitignoreCommand) Run(ctx *Context) error {
 	defer f.Close()
 
 	for _, name := range g.Names {
+		name = strings.TrimSuffix(name, ".gitignore")
+
 		path, err := url.JoinPath(GitignoreDownloadURL, name+".gitignore")
 		if err != nil {
 			return err
