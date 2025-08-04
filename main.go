@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/alecthomas/kong"
@@ -20,11 +21,12 @@ const (
 )
 
 type Context struct {
-	Offline bool
+	Offline bool // TODO: implement offline functionality
 }
 
 type FetchItem struct {
 	Name string
+	Path string
 	Type string
 }
 
@@ -101,29 +103,8 @@ type GitignoreCommand struct {
 
 func (g *GitignoreCommand) Run(ctx *Context) error {
 	if g.List {
-		body, err := fetchBytes(GitignoreListURL)
-		if err != nil {
+		if err := printGitignoreList(GitignoreListURL); err != nil {
 			return err
-		}
-
-		var respItems []FetchItem
-		if err := json.Unmarshal(body, &respItems); err != nil {
-			return err
-		}
-
-		for _, v := range respItems {
-			if v.Type == "dir" && v.Name[0] != '.' {
-				fmt.Println(v.Name + "/")
-				continue
-			}
-
-			if v.Type != "dir" && (!strings.HasSuffix(v.Name, ".gitignore") || v.Name == ".gitignore") {
-				continue
-			}
-
-			if v.Name[0] != '.' {
-				fmt.Println(strings.TrimSuffix(v.Name, ".gitignore"))
-			}
 		}
 
 		return nil
@@ -151,9 +132,28 @@ func (g *GitignoreCommand) Run(ctx *Context) error {
 			return err
 		}
 
-		body, err := fetchBytes(path)
-		if err != nil {
-			return err
+		var body []byte
+
+		for body == nil || strings.HasSuffix(strings.TrimSpace(string(body)), ".gitignore") {
+			linkedName := strings.TrimSpace(string(body))
+			parent := filepath.Dir(name)
+
+			if strings.HasSuffix(linkedName, ".gitignore") {
+				path, err = url.JoinPath(GitignoreDownloadURL, parent, linkedName)
+				if err != nil {
+					return err
+				}
+
+				body, err = fetchBytes(path)
+				if err != nil {
+					return err
+				}
+			} else {
+				body, err = fetchBytes(path)
+				if err != nil {
+					return err
+				}
+			}
 		}
 
 		if !g.Stdout {
@@ -162,6 +162,39 @@ func (g *GitignoreCommand) Run(ctx *Context) error {
 			}
 		} else {
 			fmt.Println(string(body))
+		}
+	}
+
+	return nil
+}
+
+func printGitignoreList(path string) error {
+	body, err := fetchBytes(path)
+	if err != nil {
+		return err
+	}
+
+	var respItems []FetchItem
+	if err := json.Unmarshal(body, &respItems); err != nil {
+		return err
+	}
+
+	for _, v := range respItems {
+		if v.Type != "dir" && (!strings.HasSuffix(v.Name, ".gitignore") || v.Name == ".gitignore") {
+			continue
+		}
+
+		if v.Type == "dir" && v.Name[0] != '.' {
+			newURL, err := url.JoinPath(path, v.Name)
+			if err != nil {
+				return err
+			}
+
+			if err := printGitignoreList(newURL); err != nil {
+				return err
+			}
+		} else {
+			fmt.Println(strings.TrimSuffix(v.Path, ".gitignore"))
 		}
 	}
 
