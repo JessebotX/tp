@@ -14,15 +14,13 @@ import (
 )
 
 const (
+	Version = "1.0.0"
+
 	LicenseListURL       = "https://api.github.com/repos/spdx/license-list-data/contents/text"
 	LicenseDownloadURL   = "https://raw.githubusercontent.com/spdx/license-list-data/main/text"
 	GitignoreListURL     = "https://api.github.com/repos/github/gitignore/contents"
 	GitignoreDownloadURL = "https://raw.githubusercontent.com/github/gitignore/main"
 )
-
-type Context struct {
-	Offline bool // TODO: implement offline functionality
-}
 
 type FetchItem struct {
 	Name string
@@ -216,9 +214,20 @@ func fetchBytes(url string) ([]byte, error) {
 	return body, nil
 }
 
+type VersionCommand struct{}
+
+func (v *VersionCommand) Run(ctx *Context) error {
+	fmt.Printf("tp version %s\n", Version)
+	return nil
+}
+
+// TODO...
+type Context struct{}
+
 type Config struct {
 	License   LicenseCommand   `cmd:"" help:"Fetch software licenses."`
 	Gitignore GitignoreCommand `cmd:"" help:"Fetch gitignore templates."`
+	Version   VersionCommand   `cmd:"version" help:"Print program version."`
 }
 
 func main() {
@@ -229,8 +238,3 @@ func main() {
 		ctx.FatalIfErrorf(err)
 	}
 }
-
-// func errExit(code int, format string, args ...any) {
-// 	fmt.Fprintf(os.Stderr, "tp error: "+format+"\n", args...)
-// 	os.Exit(code)
-// }
